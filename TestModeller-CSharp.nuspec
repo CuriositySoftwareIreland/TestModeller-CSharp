@@ -1,0 +1,17 @@
+<?xml version="1.0"?>
+<package >
+  <metadata>
+    <id>TestModeller.io</id>
+    <version>1.0.0.0</version>
+    <title>TestModeller-CSharp</title>
+    <authors>Curiosity Software Ireland Ltd</authors>
+    <owners>Curiosity Software Ireland Ltd</owners>
+	<license type="expression">MIT</license>
+	<projectUrl>https://TestModeller.io</projectUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>TestModeller.io Integration library for CSharp</description>
+    <releaseNotes>Initial Release.</releaseNotes>
+    <copyright>Copyright 2019</copyright>
+    <tags>TestModeller Curiosity Software</tags>
+  </metadata>
+</package>
