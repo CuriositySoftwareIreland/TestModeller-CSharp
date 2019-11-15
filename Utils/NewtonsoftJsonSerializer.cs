@@ -9,7 +9,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.IO;
 
-namespace CuriositySoftware.Utilities
+namespace CuriositySoftware.Utils
 {
     public class NewtonsoftJsonSerializer : ISerializer, IDeserializer
     {
