@@ -7,6 +7,7 @@ using RestSharp;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Collections;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,11 +20,22 @@ namespace CuriositySoftware.DataAllocation.Engine
 
         public Boolean failOnError { get; set; }
 
+        public List<AllocationType> allocationTypeList { get; set; }
+
         public ConnectionProfile ConnectionProfile { get; set; }
+
+        public DataAllocationEngine()
+        {
+            this.allocationTypeList = new List<AllocationType>();
+
+            failOnError = true;
+        }
 
         public DataAllocationEngine(ConnectionProfile p)
         {
             this.ConnectionProfile = p;
+
+            this.allocationTypeList = new List<AllocationType>();
 
             failOnError = true;
         }
@@ -52,6 +64,16 @@ namespace CuriositySoftware.DataAllocation.Engine
             return ErrorMessage;
         }
 
+        public void AddAllocationType(String pool, String suite, String test)
+        {
+            allocationTypeList.Add(new AllocationType(pool, suite, test)); 
+        }
+
+        public void ClearAllocation()
+        {
+            allocationTypeList.Clear();
+        }
+
         /**
          * Resolve specified tests within data pools on specified server
          * @param serverName server to use for performing resolution
@@ -61,6 +83,11 @@ namespace CuriositySoftware.DataAllocation.Engine
         public Boolean ResolvePools(String serverName, List<AllocationType> allocationTypes)
         {
             return ResolvePools(serverName, allocationTypes, 1000000000L);
+        }
+
+        public Boolean ResolvePools(String serverName)
+        {
+            return ResolvePools(serverName, allocationTypeList, 1000000000L);
         }
 
         /**
@@ -112,14 +139,20 @@ namespace CuriositySoftware.DataAllocation.Engine
 
                 if (!response.StatusCode.ToString().Equals("OK"))
                 {
-                    Console.WriteLine("Failed : HTTP error code - GetDataResult : " + response.Content);
+                    ErrorMessage = "Failed : HTTP error code - GetDataResult : " + response.Content;
+
+                    Console.WriteLine(ErrorMessage);
+
+                    return null;
                 }
 
                 return response.Data;
             }
             catch (Exception e)
             {
-                Console.WriteLine("Failed : - GetDataResult : " + e.Message);
+                ErrorMessage = "Failed : - GetDataResult : " + e.Message;
+
+                Console.WriteLine(ErrorMessage);
             }
 
             return null;
@@ -132,7 +165,11 @@ namespace CuriositySoftware.DataAllocation.Engine
             // We'll need to package these up and call API to start job
             JobEntity curJobStatus = createAllocateJob(serverName, poolName, allocationTypes);
             if (curJobStatus == null)
+            {
+                ErrorMessage = jobSubmission.ErrorMessage;
+
                 return false;
+            }
 
             long? jobId = curJobStatus.id;
 
@@ -195,6 +232,8 @@ namespace CuriositySoftware.DataAllocation.Engine
                 if (!response.StatusCode.ToString().Equals("OK"))
                 {
                     Console.WriteLine("Failed : HTTP error code - createAllocateJob : " + response.Content);
+
+                    return null;
                 }
 
                 return response.Data;

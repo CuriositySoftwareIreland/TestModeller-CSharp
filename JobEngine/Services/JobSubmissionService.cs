@@ -14,6 +14,8 @@ namespace CuriositySoftware.JobEngine.Services
     {
         public ConnectionProfile ConProfile;
 
+        public String ErrorMessage;
+
         public JobSubmissionService(ConnectionProfile cnProfile)
         {
             this.ConProfile = cnProfile;
@@ -34,14 +36,20 @@ namespace CuriositySoftware.JobEngine.Services
 
                 if (!response.StatusCode.ToString().Equals("OK"))
                 {
-                    Console.WriteLine("Failed : HTTP error code - GetJob : " + response.Content);
+                    ErrorMessage = "Failed : HTTP error code - GetJob : " + response.Content;
+
+                    Console.WriteLine(ErrorMessage);
+
+                    return null;
                 }
 
                 return response.Data;
             }
             catch (Exception e)
             {
-                Console.WriteLine("Failed : - GetJob : " + e.Message);
+                ErrorMessage = "Failed : - GetJob : " + e.Message;
+
+                Console.WriteLine(ErrorMessage);
             }
 
             return null;
