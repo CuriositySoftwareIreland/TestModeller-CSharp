@@ -1,5 +1,4 @@
 ﻿using CuriositySoftware.RunResult.Entities;
-using CuriositySoftware.Utilities;
 using CuriositySoftware.Utils;
 using RestSharp;
 using System;

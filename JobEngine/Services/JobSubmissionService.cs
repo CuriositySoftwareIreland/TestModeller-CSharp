@@ -1,5 +1,4 @@
 ﻿using CuriositySoftware.JobEngine.Entities;
-using CuriositySoftware.Utilities;
 using CuriositySoftware.Utils;
 using RestSharp;
 using System;

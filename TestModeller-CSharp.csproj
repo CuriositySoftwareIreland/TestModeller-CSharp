@@ -65,6 +65,7 @@
     <Compile Include="TestModeller\TestModellerModuleId.cs" />
     <Compile Include="Utils\ConnectionProfile.cs" />
     <Compile Include="Utils\NewtonsoftJsonSerializer.cs" />
+    <Compile Include="Utils\RESTService.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="packages.config" />

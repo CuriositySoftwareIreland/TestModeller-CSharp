@@ -1,7 +1,6 @@
 ﻿using CuriositySoftware.DataAllocation.Entities;
 using CuriositySoftware.JobEngine.Entities;
 using CuriositySoftware.JobEngine.Services;
-using CuriositySoftware.Utilities;
 using CuriositySoftware.Utils;
 using RestSharp;
 using System;
