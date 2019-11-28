@@ -44,7 +44,7 @@ namespace CuriositySoftware.DataAllocation.Entities
 
         public Object GetValueByColumnIndex(int index)
         {
-            return (new List<Object>(DataRows.ElementAt(0).Keys)).ElementAt(index);
+            return (new List<Object>(DataRows.ElementAt(0).Values)).ElementAt(index);
         }
     }
 }
