@@ -2,7 +2,7 @@
 <package >
   <metadata>
     <id>TestModeller.io</id>
-    <version>1.1.0.0</version>
+    <version>1.5.0.0</version>
     <title>TestModeller-CSharp</title>
     <authors>Curiosity Software Ireland Ltd</authors>
     <owners>Curiosity Software Ireland Ltd</owners>
@@ -11,7 +11,7 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>TestModeller.io Integration library for CSharp</description>
     <releaseNotes>Initial Release.</releaseNotes>
-    <copyright>Copyright 2019</copyright>
+    <copyright>Copyright 2020</copyright>
     <tags>TestModeller Curiosity Software</tags>
   </metadata>
 </package>

@@ -10,6 +10,9 @@ using System.Collections;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using TestModeller_CSharp.DataAllocation.Entities;
+using TestModeller_CSharp.DataAllocation.Engine;
+using TestModeller_CSharp.DataAllocation.Services;
 
 namespace CuriositySoftware.DataAllocation.Engine
 {
@@ -125,12 +128,32 @@ namespace CuriositySoftware.DataAllocation.Engine
          */
         public DataAllocationResult GetDataResult(String pool, String suite, String testName)
         {
+            return GetDataResult(pool, suite, testName, ResultMergeMethod.NoMerge);
+        }
+
+        /**
+         * Retrieve data allocation result for test name within a test suite and data pool
+         * @param pool pool to use for resolution
+         * @param suite suite to use for resolution
+         * @param testName test name of data to retrieve
+         * @param mergeMethod method to merge test data
+         * @return allocated result
+         */
+        public DataAllocationResult GetDataResult(String pool, String suite, String testName, ResultMergeMethod mergeMethod)
+        {
+            AllocationLookupDto lookupDto = new AllocationLookupDto();
+            lookupDto.pool = pool;
+            lookupDto.suite = suite;
+            lookupDto.testName = testName;
+
             RestClient client = new RestClient(this.ConnectionProfile.Url);
             client.AddHandler(contentType: "application/json", deserializer: NewtonsoftJsonSerializer.Default);
 
-            RestRequest request = new RestRequest("/api/apikey/" + ConnectionProfile.APIKey + "/allocation-pool/" + pool + "/suite/" + suite + "/allocated-test/" + testName + "/result/value", Method.GET);
+            RestRequest request = new RestRequest("/api/apikey/" + ConnectionProfile.APIKey + "/allocation-pool/suite/allocated-test/result/value", Method.POST);
             request.JsonSerializer = NewtonsoftJsonSerializer.Default;
             request.RequestFormat = DataFormat.Json;
+            request.AddJsonBody(lookupDto);
+            request.AddQueryParameter("mergeMethod", mergeMethod.ToString());
 
             try
             {
@@ -145,6 +168,9 @@ namespace CuriositySoftware.DataAllocation.Engine
                     return null;
                 }
 
+                Console.WriteLine("Found data for " + pool + " " + suite + " " + testName);
+                Console.WriteLine(response.Data.ToString());
+
                 return response.Data;
             }
             catch (Exception e)
@@ -155,6 +181,198 @@ namespace CuriositySoftware.DataAllocation.Engine
             }
 
             return null;
+        }
+
+
+        public DataAllocationResult GetDataResultForCriteriaInPool(String serverName, String poolName, String catalogueName, String criteriaName, Int32 howMany, List<DataAllocationCriteria> criteriaParameters)
+        {
+            return GetDataResultForCriteriaInPool(serverName, poolName, catalogueName, criteriaName, howMany, criteriaParameters, 10000000L);
+        }
+
+        public DataAllocationResult GetDataResultForCriteriaInPool(String serverName, String poolName, String catalogueName, String criteriaName, Int32 howMany, List<DataAllocationCriteria> criteriaParameters, long maxTime)
+        {
+            // 1) Find criteria of name in catalogue
+            DataCriteriaService dataCriteriaService = new DataCriteriaService(ConnectionProfile);
+            DataCatalogueTestCriteria criteria = dataCriteriaService.GetTestCriteria(catalogueName, criteriaName);
+            if (criteria == null)
+            {
+                ErrorMessage = dataCriteriaService.getErrorMessage();
+
+                Console.WriteLine("Error GetTestCriteria() " + ErrorMessage);
+
+                return null;
+            }
+
+            // 2) Find the existing allocation pool
+            AllocationPoolService allocationPoolService = new AllocationPoolService(ConnectionProfile);
+            AllocationPool allocationPool = allocationPoolService.GetAllocationPool(poolName);
+            if (allocationPool == null)
+            {
+                ErrorMessage = allocationPoolService.getErrorMessage();
+
+                Console.WriteLine("Error GetAllocationPool() - " + ErrorMessage);
+
+                return null;
+            }
+
+            // 3) Create a new test inside pool
+            AllocatedTest allocatedTest = new AllocatedTest();
+            allocatedTest.howMany = (howMany);
+            allocatedTest.name = ("Test " + Guid.NewGuid().ToString());
+            allocatedTest.poolId = (allocationPool.id);
+            allocatedTest.suiteName = ("DataAllocationFramework");
+            allocatedTest.testCriteriaIdCatalogueId = (allocationPool.catalogueId);
+            allocatedTest.testCriteriaId = (criteria.id);
+            allocatedTest.uniqueFind = (false);
+
+            Dictionary<String, DataCatalogueModellerParameter> criteriaParamHash = criteria.getModellerParameterHash();
+
+            List < AllocatedTestParameter > allocParams = new List<AllocatedTestParameter>();
+            foreach (DataAllocationCriteria allocationCriteria in criteriaParameters)
+            {
+                AllocatedTestParameter param = new AllocatedTestParameter();
+
+                if (criteriaParamHash.ContainsKey(allocationCriteria.parameterName))
+                {
+                    param.criteriaParameterId = (criteriaParamHash[(allocationCriteria.parameterName)].id);
+                    param.value = (allocationCriteria.parameterValue);
+                    param.criteriaParameterName = (allocationCriteria.parameterName);
+
+                    allocParams.Add(param);
+                }
+            }
+            allocatedTest.parameters = (allocParams);
+
+            AllocationPoolTestService allocationPoolTestService = new AllocationPoolTestService(ConnectionProfile);
+            allocatedTest = allocationPoolTestService.CreateAllocatedTest(allocatedTest, allocationPool.id);
+            if (allocatedTest == null)
+            {
+                ErrorMessage = dataCriteriaService.getErrorMessage();
+
+                Console.WriteLine("Error CreateAllocatedTest() " + ErrorMessage);
+
+                return null;
+            }
+
+
+            // 4) Run Allocation and retrieve result
+            List<AllocationType> allocationTypes = new List<AllocationType>();
+            allocationTypes.Add(new AllocationType(allocationPool.name, allocatedTest.suiteName, allocatedTest.name));
+            performAllocation(serverName, allocationPool.name, allocationTypes, maxTime);
+
+            DataAllocationResult res = GetDataResult(allocationPool.name, allocatedTest.suiteName, allocatedTest.name);
+
+            // 5) Delete allocatedTest
+            Boolean deleted = allocationPoolTestService.DeleteAllocationPoolTest(allocatedTest.id);
+            if (!deleted)
+            {
+                ErrorMessage = allocationPoolTestService.getErrorMessage();
+
+                Console.WriteLine("Error DeleteAllocationPoolTest() " + ErrorMessage);
+
+                return res;
+
+            }
+
+            return res;
+        }
+
+        public DataAllocationResult getDataResultForCriteria(String serverName, String catalogueName, String criteriaName, Int32 howMany, List<DataAllocationCriteria> criteriaParameters)
+        {
+            return getDataResultForCriteria(serverName, catalogueName, criteriaName, howMany, criteriaParameters, 10000000L);
+        }
+
+        public DataAllocationResult getDataResultForCriteria(String serverName, String catalogueName, String criteriaName, Int32 howMany, List<DataAllocationCriteria> criteriaParameters, long maxTime)
+        {
+            // 1) Find criteria of name in catalogue
+            DataCriteriaService dataCriteriaService = new DataCriteriaService(ConnectionProfile);
+            DataCatalogueTestCriteria criteria = dataCriteriaService.GetTestCriteria(catalogueName, criteriaName);
+            if (criteria == null)
+            {
+                ErrorMessage = dataCriteriaService.getErrorMessage();
+
+                Console.WriteLine("Error GetTestCriteria() " + ErrorMessage);
+
+                return null;
+            }
+
+            // 2) Create a new allocation pool
+            AllocationPool allocationPool = new AllocationPool();
+            allocationPool.catalogueId = (criteria.catalogueId);
+            allocationPool.name = ("Temporary pool " + Guid.NewGuid().ToString());
+
+            AllocationPoolService allocationPoolService = new AllocationPoolService(ConnectionProfile);
+            allocationPool = allocationPoolService.CreateAllocationPool(allocationPool);
+            if (allocationPool == null)
+            {
+                ErrorMessage = dataCriteriaService.getErrorMessage();
+
+                Console.WriteLine("Error CreateAllocationPool() " + ErrorMessage);
+
+                return null;
+            }
+
+            // 3) Create a new test inside pool
+            AllocatedTest allocatedTest = new AllocatedTest();
+            allocatedTest.howMany = (howMany);
+            allocatedTest.name = ("Test " + Guid.NewGuid().ToString());
+            allocatedTest.poolId = (allocationPool.id);
+            allocatedTest.suiteName = ("DataAllocationFramework");
+            allocatedTest.testCriteriaIdCatalogueId = (allocationPool.catalogueId);
+            allocatedTest.testCriteriaId = (criteria.id);
+            allocatedTest.uniqueFind = (false);
+
+            Dictionary<String, DataCatalogueModellerParameter> criteriaParamHash = criteria.getModellerParameterHash();
+
+            List < AllocatedTestParameter > allocParams = new List<AllocatedTestParameter>();
+            foreach (DataAllocationCriteria allocationCriteria in criteriaParameters)
+            {
+                AllocatedTestParameter param = new AllocatedTestParameter();
+
+                if (criteriaParamHash.ContainsKey(allocationCriteria.parameterName))
+                {
+                    param.criteriaParameterId = (criteriaParamHash[(allocationCriteria.parameterName)].id);
+                    param.value = (allocationCriteria.parameterValue);
+                    param.criteriaParameterName = (allocationCriteria.parameterName);
+
+                    allocParams.Add(param);
+                }
+            }
+            allocatedTest.parameters = (allocParams);
+
+            AllocationPoolTestService allocationPoolTestService = new AllocationPoolTestService(ConnectionProfile);
+            allocatedTest = allocationPoolTestService.CreateAllocatedTest(allocatedTest, allocationPool.id);
+            if (allocatedTest == null)
+            {
+                ErrorMessage = dataCriteriaService.getErrorMessage();
+
+                Console.WriteLine("Error CreateAllocatedTest() " + ErrorMessage);
+
+                return null;
+            }
+
+
+            // 4) Run Allocation and retrieve result
+            List<AllocationType> allocationTypes = new List<AllocationType>();
+            allocationTypes.Add(new AllocationType(allocationPool.name, allocatedTest.suiteName, allocatedTest.name));
+            performAllocation(serverName, allocationPool.name, allocationTypes, maxTime);
+
+            DataAllocationResult res = GetDataResult(allocationPool.name, allocatedTest.suiteName, allocatedTest.name);
+
+            // 5) Delete pool
+            Boolean deleted = allocationPoolService.DeleteAllocationPool(allocationPool.id);
+            if (!deleted)
+            {
+                ErrorMessage = allocationPoolService.getErrorMessage();
+
+                Console.WriteLine("Error DeleteAllocationPool() " + ErrorMessage);
+
+                return res;
+
+            }
+
+            return res;
+
         }
 
         private Boolean performAllocation(String serverName, String poolName, List<AllocationType> allocationTypes, long maxTimeMS)

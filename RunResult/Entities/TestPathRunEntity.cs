@@ -25,5 +25,13 @@ namespace CuriositySoftware.RunResult.Entities
         public String testPathGuid { get; set; }
 
         public int runTime { get; set; }
+
+        public List<TestPathRunStep> testPathRunSteps { get; set; }
+
+        public TestPathRunEntity()
+        {
+            testPathRunSteps = new List<TestPathRunStep>();
+        }
+
     }
 }
