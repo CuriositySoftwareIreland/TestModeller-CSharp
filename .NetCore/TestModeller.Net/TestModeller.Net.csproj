@@ -1,0 +1,23 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Title>TestModeller .Net</Title>
+    <Authors>James Walker</Authors>
+    <Company>Curiosity Software Ireland Ltd</Company>
+    <Product>Test Modeller</Product>
+    <Description>Client library for Test Modeller</Description>
+    <PackageProjectUrl>https://www.curiositysoftware.ie/</PackageProjectUrl>
+    <PackageId>TestModeller.NetCore</PackageId>
+    <GeneratePackageOnBuild>True</GeneratePackageOnBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="RestSharp" Version="110.2.0" />
+    <PackageReference Include="Selenium.WebDriver" Version="4.10.0" />
+  </ItemGroup>
+
+</Project>
